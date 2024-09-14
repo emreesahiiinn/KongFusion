@@ -1,0 +1,6 @@
+@KongFusion_HostAddress = http://localhost:5072
+
+GET {{KongFusion_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,29 @@
+_format_version: "2.1"
+
+services:
+  - name: kongfusion-service
+    url: http://kongfusion-upstream
+    routes:
+      - name: kongfusion-route
+        paths:
+          - /
+        strip_path: false
+
+upstreams:
+  - name: kongfusion-upstream
+    targets:
+      - target: kongfusion-1:5072
+      - target: kongfusion-2:5072
+      - target: kongfusion-3:5072
+      - target: kongfusion-4:5072
+      - target: kongfusion-5:5072
+
+plugins:
+  - name: rate-limiting
+    service: kongfusion-service
+    config:
+      minute: 10
+      limit_by: ip
+
+consumers:
+  - username: admin

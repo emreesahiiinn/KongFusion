@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'kongfusion-1'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['kongfusion-1:5072']
+
+  - job_name: 'kongfusion-2'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['kongfusion-2:5072']
+
+  - job_name: 'kongfusion-3'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['kongfusion-3:5072']
+
+  - job_name: 'kongfusion-4'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['kongfusion-4:5072']
+
+  - job_name: 'kongfusion-5'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['kongfusion-5:5072']

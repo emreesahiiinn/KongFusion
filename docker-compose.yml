@@ -1,0 +1,163 @@
+﻿version: '3.9'
+
+x-kong-config: &kong-env
+  KONG_DATABASE: ${KONG_DATABASE:-off}
+  KONG_DECLARATIVE_CONFIG: /opt/kong/kong.yaml
+  KONG_PG_DATABASE: ${KONG_PG_DATABASE:-kong}
+  KONG_PG_HOST: db
+  KONG_PG_USER: ${KONG_PG_USER:-kong}
+  KONG_PG_PASSWORD: ${KONG_PG_PASSWORD:-kong}
+
+volumes:
+  kong_data: {}
+  kong_prefix_vol:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  kong_tmp_vol:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  prometheus_data: {}
+  grafana_data: {}
+
+networks:
+  kong-net:
+    external: false
+
+services:
+  kongfusion:
+    image: kongfusion:latest
+    build:
+      context: .
+      dockerfile: KongFusion/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - kong-net
+
+  kongfusion-1:
+    image: kongfusion:latest
+    ports:
+      - "5071:5072"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - kong-net
+    depends_on:
+      - kong
+
+  kongfusion-2:
+    image: kongfusion:latest
+    ports:
+      - "5072:5072"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - kong-net
+    depends_on:
+      - kong
+
+  kongfusion-3:
+    image: kongfusion:latest
+    ports:
+      - "5073:5072"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - kong-net
+    depends_on:
+      - kong
+
+  kongfusion-4:
+    image: kongfusion:latest
+    ports:
+      - "5074:5072"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - kong-net
+    depends_on:
+      - kong
+
+  kongfusion-5:
+    image: kongfusion:latest
+    ports:
+      - "5075:5072"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - kong-net
+    depends_on:
+      - kong
+
+  kong:
+    image: "${KONG_DOCKER_TAG:-kong:latest}"
+    user: "${KONG_USER:-kong}"
+    environment:
+      <<: *kong-env
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_PROXY_LISTEN: "${KONG_PROXY_LISTEN:-0.0.0.0:8000}"
+      KONG_ADMIN_LISTEN: "${KONG_ADMIN_LISTEN:-0.0.0.0:8001}"
+      KONG_ADMIN_GUI_LISTEN: "${KONG_ADMIN_GUI_LISTEN:-0.0.0.0:8002}"
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_PREFIX: ${KONG_PREFIX:-/var/run/kong}
+      KONG_ADMIN_GUI_AUTH: basic-auth
+      KONG_ADMIN_AUTH: basic-auth
+      KONG_ADMIN_AUTH_BASIC_USERNAME: "admin"
+      KONG_ADMIN_AUTH_BASIC_PASSWORD: "Bb2024*!"
+    networks:
+      - kong-net
+    ports:
+      - "8000:8000/tcp"
+      - "8443:8443/tcp"
+      - "8001:8001/tcp"
+      - "8002:8002/tcp"
+    volumes:
+      - kong_prefix_vol:/var/run/kong
+      - kong_tmp_vol:/tmp
+      - ./config/kong.yaml:/opt/kong/kong.yaml
+    healthcheck:
+      test: [ "CMD", "kong", "health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: on-failure
+    read_only: true
+    security_opt:
+      - no-new-privileges
+
+  db:
+    image: postgres:9.5
+    profiles: [ "database" ]
+    environment:
+      POSTGRES_DB: ${KONG_PG_DATABASE:-kong}
+      POSTGRES_USER: ${KONG_PG_USER:-kong}
+      POSTGRES_PASSWORD: ${KONG_PG_PASSWORD:-kong}
+    networks:
+      - kong-net
+    volumes:
+      - kong_data:/var/lib/postgresql/data
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - kong-net
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - kong-net
+    ports:
+      - "3000:3000"
